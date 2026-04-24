@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>実例集 — ジーセットメディカル</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@700;800&family=Noto+Sans+JP:wght@300;400;500;700&family=DM+Mono:wght@400&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --bg:#f7f5f0;--white:#fff;--text:#1a1a1a;--muted:#6b6560;
+  --border:#e8e4dc;--accent:#c8860a;--teal:#0e7a6e;--red:#dc2626;--green:#16a34a;
+}
+body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+
+/* NAV */
+.nav{padding:16px 40px;border-bottom:2px solid var(--border);background:rgba(247,245,240,.97);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.nav-logo{font-family:'DM Mono',monospace;font-size:13px;color:var(--muted);}
+.nav-back{font-size:13px;color:var(--teal);text-decoration:none;display:flex;align-items:center;gap:6px;}
+.nav-back:hover{text-decoration:underline;}
+
+/* HERO */
+.hero{max-width:760px;margin:0 auto;padding:56px 40px 40px;}
+.hero-kicker{font-family:'DM Mono',monospace;font-size:11px;color:var(--accent);letter-spacing:.12em;text-transform:uppercase;margin-bottom:12px;}
+.hero h1{font-family:'Shippori Mincho',serif;font-size:clamp(22px,3.5vw,32px);font-weight:800;line-height:1.35;margin-bottom:12px;}
+.hero-sub{font-size:15px;color:var(--muted);line-height:1.9;max-width:520px;}
+
+/* CASE CARDS */
+.cases{max-width:760px;margin:0 auto;padding:0 40px 80px;display:flex;flex-direction:column;gap:32px;}
+
+.case-card{background:var(--white);border-radius:16px;border:2px solid var(--border);overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.05);}
+.case-header{padding:22px 26px 18px;border-bottom:1.5px solid var(--border);}
+.case-meta{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.case-n{font-family:'DM Mono',monospace;font-size:11px;color:var(--accent);letter-spacing:.1em;}
+.case-badge{font-size:11px;padding:3px 10px;border-radius:10px;font-family:'DM Mono',monospace;}
+.badge-rx{background:rgba(14,122,110,.1);color:var(--teal);}
+.badge-il{background:rgba(200,134,10,.1);color:var(--accent);}
+.case-title{font-family:'Shippori Mincho',serif;font-size:19px;font-weight:700;line-height:1.4;margin-bottom:4px;}
+.case-sub{font-size:13px;color:var(--muted);}
+
+/* PRESCRIPTION BOX */
+.rx-box{margin:0 26px 0;padding:18px 20px;background:#fafaf8;border:2px solid #d4d0c8;border-radius:10px;font-family:'DM Mono',monospace;font-size:13px;line-height:2;}
+.rx-box-title{font-size:10px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px;}
+.rx-line{display:flex;justify-content:space-between;align-items:baseline;}
+.rx-drug{color:var(--text);}
+.rx-flag{font-size:11px;padding:1px 8px;border-radius:6px;margin-left:8px;font-family:'Noto Sans JP',sans-serif;}
+.flag-warn{background:rgba(220,38,38,.08);color:var(--red);border:1px solid rgba(220,38,38,.2);}
+.flag-check{background:rgba(200,134,10,.08);color:var(--accent);border:1px solid rgba(200,134,10,.2);}
+.rx-timing{color:var(--muted);font-size:12px;}
+
+/* QUESTION */
+.case-q{padding:18px 26px;border-bottom:1.5px solid var(--border);}
+.case-q-txt{font-size:15px;font-weight:600;color:var(--text);margin-bottom:14px;line-height:1.65;}
+.choices{display:flex;flex-direction:column;gap:8px;}
+.choice{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border-radius:10px;border:2px solid var(--border);cursor:pointer;transition:all .15s;background:var(--white);font-size:14px;text-align:left;width:100%;}
+.choice:hover{border-color:var(--accent);background:rgba(200,134,10,.04);}
+.choice.selected-ok{border-color:var(--green);background:rgba(22,101,52,.06);}
+.choice.selected-ng{border-color:var(--red);background:rgba(220,38,38,.05);}
+.choice-icon{font-size:16px;flex-shrink:0;margin-top:1px;}
+.react{display:none;margin-top:12px;padding:14px 16px;border-radius:10px;font-size:14px;line-height:1.8;}
+.react.show{display:block;}
+.react-ok{background:rgba(22,101,52,.07);border-left:4px solid var(--green);}
+.react-ng{background:rgba(220,38,38,.06);border-left:4px solid var(--red);}
+.react-label{font-size:19px;font-weight:900;display:block;margin-bottom:6px;}
+.react-ok .react-label{color:var(--green);}
+.react-ng .react-label{color:var(--red);}
+
+/* LINKS */
+.case-links{padding:18px 26px;}
+.links-lbl{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px;}
+.link-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.ep-link{display:flex;align-items:center;gap:8px;padding:11px 14px;border-radius:10px;border:2px solid var(--border);text-decoration:none;font-size:13px;color:var(--text);transition:all .15s;}
+.ep-link:hover{border-color:var(--teal);background:rgba(14,122,110,.04);}
+.ep-link-icon{font-size:15px;}
+.ep-link-body{}
+.ep-link-type{font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);display:block;letter-spacing:.08em;margin-bottom:1px;}
+.ep-link-title{font-size:12px;font-weight:600;color:var(--text);}
+
+/* FOOTER */
+footer{padding:24px 40px;border-top:2px solid var(--border);text-align:center;font-size:12px;color:var(--muted);font-family:'DM Mono',monospace;}
+
+@media(max-width:600px){
+  .nav{padding:12px 20px;}
+  .hero{padding:36px 20px 28px;}
+  .cases{padding:0 20px 60px;}
+  .link-grid{grid-template-columns:1fr;}
+  .rx-box{margin:0 16px;}
+  .case-header,.case-q,.case-links{padding-left:18px;padding-right:18px;}
+}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-logo">ジーセットメディカル</div>
+  <a class="nav-back" href="index.html">← トップに戻る</a>
+</nav>
+
+<div class="hero">
+  <div class="hero-kicker">Case Studies</div>
+  <h1>この処方箋、どう読む？</h1>
+  <div class="hero-sub">実際の処方箋から「違和感」を探し、なぜそうなるかを考える。薬理の知識と投薬技術を実戦で繋げる。</div>
+</div>
+
+<div class="cases">
+
+  <!-- CASE 01 -->
+  <div class="case-card">
+    <div class="case-header">
+      <div class="case-meta">
+        <span class="case-n">CASE 01</span>
+        <span class="case-badge badge-rx">RxLogic</span>
+        <span class="case-badge badge-il">InterviewLogic</span>
+      </div>
+      <div class="case-title">全部「就寝前」の処方箋</div>
+      <div class="case-sub">48歳女性・初診・うつ病・不眠</div>
+    </div>
+
+    <div class="rx-box" style="margin-top:18px;">
+      <div class="rx-box-title">Rp.</div>
+      <div class="rx-line"><span class="rx-drug">エスシタロプラム 10mg</span><span class="rx-timing">就寝前 1錠</span></div>
+      <div class="rx-line"><span class="rx-drug">アリピプラゾール 3mg <span class="rx-flag flag-warn">要確認</span></span><span class="rx-timing">就寝前 1錠</span></div>
+      <div class="rx-line"><span class="rx-drug">ラメルテオン 8mg</span><span class="rx-timing">就寝前 1錠</span></div>
+      <div class="rx-line"><span class="rx-drug">ロラゼパム 0.5mg <span class="rx-flag flag-check">頓服</span></span><span class="rx-timing">不眠時</span></div>
+    </div>
+
+    <div class="case-q" style="margin-top:18px;">
+      <div class="case-q-txt">アリピプラゾール3mgが就寝前に処方されている。あなたはどう判断する？</div>
+      <div class="choices" id="c1-choices">
+        <button class="choice" onclick="answer('c1',this,'ng')">
+          <span class="choice-icon">😴</span>
+          <span>少量なので睡眠補助目的。特に問題ない</span>
+        </button>
+        <button class="choice" onclick="answer('c1',this,'ng')">
+          <span class="choice-icon">🤷</span>
+          <span>アリピプラゾールは鎮静系だから就寝前で適切</span>
+        </button>
+        <button class="choice" onclick="answer('c1',this,'ok')">
+          <span class="choice-icon">⚠️</span>
+          <span>D2部分作動の活性化・アカシジアで不眠が悪化する可能性がある。疑義照会を検討</span>
+        </button>
+        <button class="choice" onclick="answer('c1',this,'ng')">
+          <span class="choice-icon">💊</span>
+          <span>エスシタロプラムとの相互作用が問題</span>
+        </button>
+      </div>
+      <div class="react react-ok" id="c1-ok">
+        <span class="react-label">正解！</span>
+        アリピプラゾールはD2部分作動薬です。就寝前に服用すると<b>活性化作用・アカシジア</b>が入眠を妨げます。「鎮静系」というイメージは誤りで、むしろ他の抗精神病薬より覚醒方向に働きます。<br><br>
+        <b>疑義照会のポイント：</b>「アリピプラゾールを就寝前に処方されていますが、不眠の訴えが増悪した場合の対応をご確認させてください」
+      </div>
+      <div class="react react-ng" id="c1-ng">
+        <span class="react-label">惜しい！</span>
+        アリピプラゾールを「鎮静系」と捉えていませんか？他の抗精神病薬と異なり、アリピプラゾールはD2<b>部分</b>作動薬です。H1遮断が弱く鎮静が出にくく、むしろ<b>活性化・アカシジア</b>が就寝前の服用で問題になります。もう一度考えてみましょう。
+      </div>
+    </div>
+
+    <div class="case-links">
+      <div class="links-lbl">この症例で深掘りする</div>
+      <div class="link-grid">
+        <a class="ep-link" href="rxlogic.html">
+          <span class="ep-link-icon">💊</span>
+          <span class="ep-link-body">
+            <span class="ep-link-type">RxLogic</span>
+            <span class="ep-link-title">EP11 レキサルティ ― アリピより穏やかな理由</span>
+          </span>
+        </a>
+        <a class="ep-link" href="rxlogic.html">
+          <span class="ep-link-icon">💊</span>
+          <span class="ep-link-body">
+            <span class="ep-link-type">RxLogic</span>
+            <span class="ep-link-title">EP28 就寝前処方の罠</span>
+          </span>
+        </a>
+        <a class="ep-link" href="interview.html">
+          <span class="ep-link-icon">👂</span>
+          <span class="ep-link-body">
+            <span class="ep-link-type">InterviewLogic</span>
+            <span class="ep-link-title">EP09 副作用を患者が話し始める問い</span>
+          </span>
+        </a>
+        <a class="ep-link" href="interview.html">
+          <span class="ep-link-icon">👂</span>
+          <span class="ep-link-body">
+            <span class="ep-link-type">InterviewLogic</span>
+            <span class="ep-link-title">EP11 アカシジアの見抜き方</span>
+          </span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- CASE 02 -->
+  <div class="case-card">
+    <div class="case-header">
+      <div class="case-meta">
+        <span class="case-n">CASE 02</span>
+        <span class="case-badge badge-rx">RxLogic</span>
+        <span class="case-badge badge-il">InterviewLogic</span>
+      </div>
+      <div class="case-title">「食事は関係ない」と思っていた</div>
+      <div class="case-sub">35歳男性・双極性うつ・継続処方</div>
+    </div>
+
+    <div class="rx-box" style="margin-top:18px;">
+      <div class="rx-box-title">Rp.</div>
+      <div class="rx-line"><span class="rx-drug">ルラシドン 40mg <span class="rx-flag flag-warn">食後必須</span></span><span class="rx-timing">夕食後 1錠</span></div>
+      <div class="rx-line"><span class="rx-drug">ラモトリギン 100mg</span><span class="rx-timing">朝・夕 各1錠</span></div>
+      <div class="rx-line"><span class="rx-drug">クエチアピン 25mg</span><span class="rx-timing">就寝前 1錠</span></div>
+    </div>
+
+    <div class="case-q" style="margin-top:18px;">
+      <div class="case-q-txt">患者「最近また気分が落ちてきた気がする。薬は毎日飲んでますよ」。あなたが最初に確認することは？</div>
+      <div class="choices" id="c2-choices">
+        <button class="choice" onclick="answer('c2',this,'ng')">
+          <span class="choice-icon">📋</span>
+          <span>ラモトリギンの用量が適切か確認する</span>
+        </button>
+        <button class="choice" onclick="answer('c2',this,'ok')">
+          <span class="choice-icon">🍽️</span>
+          <span>ルラシドンを夕食後に飲めているか、食事量を確認する</span>
+        </button>
+        <button class="choice" onclick="answer('c2',this,'ng')">
+          <span class="choice-icon">😴</span>
+          <span>クエチアピン少量の鎮静が強すぎないか確認する</span>
+        </button>
+        <button class="choice" onclick="answer('c2',this,'ng')">
+          <span class="choice-icon">💊</span>
+          <span>ラモトリギンとルラシドンの相互作用を確認する</span>
+        </button>
+      </div>
+      <div class="react react-ok" id="c2-ok">
+        <span class="react-label">正解！</span>
+        ルラシドン（ラツーダ）は<b>350kcal以上の食事と一緒に服用しないと吸収が約50%以下に低下</b>します。「毎日飲んでいる」は本当でも、食事を抜いた日・少食の日は実質的に効いていない可能性があります。<br><br>
+        <b>投薬での確認：</b>「夕食はだいたいどのくらい食べられていますか？食欲が落ちている日はありますか？」→ InterviewLogicで「いつ」を使う場面です。
+      </div>
+      <div class="react react-ng" id="c2-ng">
+        <span class="react-label">惜しい！</span>
+        処方の変更や相互作用の前に、<b>服用状況</b>の確認が先です。ルラシドンは食事の影響を強く受ける薬です。「飲んでいる」と「効いている」は別の話。食事量の確認が最初のステップです。
+      </div>
+    </div>
+
+    <div class="case-links">
+      <div class="links-lbl">この症例で深掘りする</div>
+      <div class="link-grid">
+        <a class="ep-link" href="rxlogic.html">
+          <span class="ep-link-icon">💊</span>
+          <span class="ep-link-body">
+            <span class="ep-link-type">RxLogic</span>
+            <span class="ep-link-title">EP33 ラツーダ vs リスペリドン</span>
+          </span>
+        </a>
+        <a class="ep-link" href="rxlogic.html">
+          <span class="ep-link-icon">💊</span>
+          <span class="ep-link-body">
+            <span class="ep-link-type">RxLogic</span>
+            <span class="ep-link-title">EP34 ビプレッソ vs ラツーダ</span>
+          </span>
+        </a>
+        <a class="ep-link" href="interview.html">
+          <span class="ep-link-icon">👂</span>
+          <span class="ep-link-body">
+            <span class="ep-link-type">InterviewLogic</span>
+            <span class="ep-link-title">EP02 「いつ」がキラーワード</span>
+          </span>
+        </a>
+        <a class="ep-link" href="interview.html">
+          <span class="ep-link-icon">👂</span>
+          <span class="ep-link-body">
+            <span class="ep-link-type">InterviewLogic</span>
+            <span class="ep-link-title">EP14 継続患者の変化を引き出す</span>
+          </span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- CASE 03 -->
+  <div class="case-card">
+    <div class="case-header">
+      <div class="case-meta">
+        <span class="case-n">CASE 03</span>
+        <span class="case-badge badge-rx">RxLogic</span>
+        <span class="case-badge badge-il">InterviewLogic</span>
+      </div>
+      <div class="case-title">「先週より眠れている」の裏側</div>
+      <div class="case-sub">62歳女性・不安障害・継続処方3ヶ月目</div>
+    </div>
+
+    <div class="rx-box" style="margin-top:18px;">
+      <div class="rx-box-title">Rp.</div>
+      <div class="rx-line"><span class="rx-drug">エチゾラム 0.5mg <span class="rx-flag flag-warn">依存注意</span></span><span class="rx-timing">就寝前 1錠</span></div>
+      <div class="rx-line"><span class="rx-drug">パロキセチン 10mg</span><span class="rx-timing">朝食後 1錠</span></div>
+      <div class="rx-line"><span class="rx-drug">スルピリド 50mg</span><span class="rx-timing">朝・夕 各1錠</span></div>
+    </div>
+
+    <div class="case-q" style="margin-top:18px;">
+      <div class="case-q-txt">患者「先週より眠れるようになりました」。この発言に対してあなたの次の一手は？</div>
+      <div class="choices" id="c3-choices">
+        <button class="choice" onclick="answer('c3',this,'ng')">
+          <span class="choice-icon">😊</span>
+          <span>「良かったですね！このまま続けましょう」と励ます</span>
+        </button>
+        <button class="choice" onclick="answer('c3',this,'ng')">
+          <span class="choice-icon">📋</span>
+          <span>パロキセチンが効いてきたと判断し、増量を提案する</span>
+        </button>
+        <button class="choice" onclick="answer('c3',this,'ok')">
+          <span class="choice-icon">🔍</span>
+          <span>「眠れるようになった」の具体的な内容と、日中の状態を確認する</span>
+        </button>
+        <button class="choice" onclick="answer('c3',this,'ng')">
+          <span class="choice-icon">⚠️</span>
+          <span>エチゾラムへの依存が始まっていると判断し、減薬を提案する</span>
+        </button>
+      </div>
+      <div class="react react-ok" id="c3-ok">
+        <span class="react-label">正解！</span>
+        「眠れるようになった」は良い変化ですが、<b>何が良くなったのか</b>を具体化することが重要です。エチゾラムが効いているだけなのか、パロキセチンの根本的な改善なのか、依存が形成されているのか——判断には「いつから・どのくらい・日中の状態は」という情報が必要です。<br><br>
+        さらに<b>患者自身に改善を言語化させる</b>ことが「通院の意味」「継続の必要性」の認識につながります。→ InterviewLogicの核心です。
+      </div>
+      <div class="react react-ng" id="c3-ng">
+        <span class="react-label">惜しい！</span>
+        「良くなった」という言葉を表面的に受け取っていませんか？3ヶ月目のエチゾラム継続は<b>依存形成のリスク時期</b>でもあります。「良くなった」の中身と日中の状態を確認することで、薬剤師としての判断材料が揃います。
+      </div>
+    </div>
+
+    <div class="case-links">
+      <div class="links-lbl">この症例で深掘りする</div>
+      <div class="link-grid">
+        <a class="ep-link" href="rxlogic.html">
+          <span class="ep-link-icon">💊</span>
+          <span class="ep-link-body">
+            <span class="ep-link-type">RxLogic</span>
+            <span class="ep-link-title">EP02 BZD系 ― 依存の機序</span>
+          </span>
+        </a>
+        <a class="ep-link" href="rxlogic.html">
+          <span class="ep-link-icon">💊</span>
+          <span class="ep-link-body">
+            <span class="ep-link-type">RxLogic</span>
+            <span class="ep-link-title">EP06 パロキセチン ― やめにくい理由</span>
+          </span>
+        </a>
+        <a class="ep-link" href="interview.html">
+          <span class="ep-link-icon">👂</span>
+          <span class="ep-link-body">
+            <span class="ep-link-type">InterviewLogic</span>
+            <span class="ep-link-title">EP03 「感想」でなく「事実」を聞く</span>
+          </span>
+        </a>
+        <a class="ep-link" href="interview.html">
+          <span class="ep-link-icon">👂</span>
+          <span class="ep-link-body">
+            <span class="ep-link-type">InterviewLogic</span>
+            <span class="ep-link-title">EP14 継続患者の変化を引き出す</span>
+          </span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<footer>© 2026 ジーセットメディカル · 社内限定コンテンツ</footer>
+
+<script>
+function answer(caseId, btn, result) {
+  var choices = document.getElementById(caseId + '-choices');
+  var btns = choices.querySelectorAll('.choice');
+  btns.forEach(function(b) { b.disabled = true; });
+
+  if (result === 'ok') {
+    btn.classList.add('selected-ok');
+    document.getElementById(caseId + '-ok').classList.add('show');
+  } else {
+    btn.classList.add('selected-ng');
+    document.getElementById(caseId + '-ng').classList.add('show');
+    // Re-enable after showing hint
+    setTimeout(function() {
+      btns.forEach(function(b) {
+        b.disabled = false;
+        b.classList.remove('selected-ng');
+      });
+      document.getElementById(caseId + '-ng').classList.remove('show');
+    }, 2800);
+  }
+}
+</script>
+</body>
+</html>
