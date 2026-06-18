@@ -1,0 +1,1320 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>薬歴AIアシスト v2</title>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
+<style>
+  :root {
+    --bg: #eef1f7;
+    --surface: #ffffff;
+    --surface2: #e8ecf5;
+    --border: #b0b8d8;
+    --accent: #1a4fd6;
+    --accent2: #6d28d9;
+    --success: #15803d;
+    --warning: #b45309;
+    --danger: #b91c1c;
+    --google: #4285f4;
+    --text: #0f1535;
+    --text2: #2d3561;
+    --text3: #6b729a;
+    --rec: #b91c1c;
+    --font: 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', sans-serif;
+    --mono: 'SF Mono', 'Consolas', monospace;
+    --font-base: 16px;
+  }
+
+  html { font-size: 16px; }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font); font-size: 16px; line-height: 1.7; min-height: 100vh; }
+
+  /* ======== セットアップ画面 ======== */
+  #setupScreen {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+
+  .setup-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 36px;
+    width: 100%;
+    max-width: 520px;
+  }
+
+  .setup-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+
+  .setup-sub {
+    font-size: 13px;
+    color: var(--text2);
+    margin-bottom: 28px;
+    line-height: 1.7;
+  }
+
+  .setup-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text2);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    display: block;
+  }
+
+  .setup-input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 10px 12px;
+    outline: none;
+    margin-bottom: 16px;
+    transition: border-color 0.2s;
+  }
+
+  .setup-input:focus { border-color: var(--accent); }
+
+  .setup-section {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+
+  .setup-section-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .setup-btn {
+    width: 100%;
+    padding: 13px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border: none;
+    border-radius: 8px;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: opacity 0.2s;
+  }
+
+  .setup-btn:hover { opacity: 0.9; }
+
+  .setup-note {
+    font-size: 11px;
+    color: var(--text3);
+    margin-top: 16px;
+    line-height: 1.7;
+    padding: 12px;
+    background: var(--surface2);
+    border-radius: 8px;
+  }
+
+  /* ======== ログイン画面 ======== */
+  #loginScreen {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+
+  .login-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 48px 40px;
+    width: 100%;
+    max-width: 400px;
+    text-align: center;
+  }
+
+  .login-logo {
+    width: 56px;
+    height: 56px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+    margin: 0 auto 24px;
+  }
+
+  .login-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+
+  .login-sub {
+    font-size: 13px;
+    color: var(--text2);
+    margin-bottom: 36px;
+    line-height: 1.7;
+  }
+
+  .google-btn {
+    width: 100%;
+    padding: 14px;
+    background: #fff;
+    border: none;
+    border-radius: 10px;
+    color: #3c4043;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    transition: all 0.2s;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  }
+
+  .google-btn:hover { background: #f8f8f8; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
+  .google-btn:active { transform: translateY(0); }
+
+  .google-icon {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+  }
+
+  .login-note {
+    font-size: 11px;
+    color: var(--text3);
+    margin-top: 20px;
+    line-height: 1.7;
+  }
+
+  .setup-link {
+    font-size: 11px;
+    color: var(--accent);
+    cursor: pointer;
+    margin-top: 16px;
+    display: inline-block;
+    text-decoration: underline;
+  }
+
+  /* ======== メイン画面 ======== */
+  #mainScreen { display: none; }
+
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .logo-dot { width: 8px; height: 8px; background: var(--accent); border-radius: 50%; }
+
+  .user-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .user-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    object-fit: cover;
+  }
+
+  .user-avatar-placeholder {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    color: #fff;
+    flex-shrink: 0;
+  }
+
+  .user-name {
+    font-size: 13px;
+    color: var(--text2);
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .logout-btn {
+    padding: 6px 12px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text3);
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .logout-btn:hover { border-color: var(--danger); color: var(--danger); }
+
+  .container {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 24px 20px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  .card-full { grid-column: 1 / -1; }
+
+  .card-header {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .card-title { font-size: 14px; font-weight: 700; letter-spacing: 0.06em; color: var(--text2); text-transform: uppercase; }
+  .card-body { padding: 18px; }
+
+  .patient-row { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+  .patient-label { font-size: 12px; color: var(--text2); white-space: nowrap; }
+
+  .patient-input {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 14px;
+    padding: 8px 12px;
+    width: 180px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .patient-input:focus { border-color: var(--accent); }
+
+  /* APIキー行 */
+  .api-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 18px;
+    background: rgba(79,142,247,0.05);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .api-label { font-size: 11px; color: var(--text3); white-space: nowrap; }
+
+  .api-input {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text2);
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 6px 10px;
+    outline: none;
+  }
+
+  .api-input:focus { border-color: var(--accent); }
+  .save-key-btn { padding: 6px 12px; background: var(--accent); border: none; border-radius: 6px; color: #fff; font-size: 11px; cursor: pointer; white-space: nowrap; }
+
+  /* 録音 */
+  .rec-area { display: flex; align-items: center; gap: 16px; }
+
+  .rec-btn {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    transition: all 0.2s;
+    flex-shrink: 0;
+    background: var(--accent);
+    color: #fff;
+  }
+
+  .rec-btn.recording { background: var(--rec); animation: pulse 1.5s infinite; }
+  .rec-btn:hover { opacity: 0.85; transform: scale(1.05); }
+  .rec-btn:active { transform: scale(0.97); }
+
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(224,92,92,0.4); }
+    70% { box-shadow: 0 0 0 12px rgba(224,92,92,0); }
+    100% { box-shadow: 0 0 0 0 rgba(224,92,92,0); }
+  }
+
+  .rec-info { flex: 1; }
+  .rec-status { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .rec-status.active { color: var(--rec); }
+  .rec-timer { font-family: var(--mono); font-size: 22px; font-weight: 700; color: var(--text2); letter-spacing: 0.05em; }
+  .rec-timer.active { color: var(--text); }
+
+  .transcript-box {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+    min-height: 100px;
+    font-size: 14px;
+    line-height: 1.8;
+    color: var(--text);
+    margin-top: 16px;
+  }
+
+  .transcript-placeholder { color: var(--text3); font-size: 13px; }
+  .interim-text { color: var(--text3); font-style: italic; }
+
+  .generate-btn {
+    width: 100%;
+    margin-top: 14px;
+    padding: 13px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border: none;
+    border-radius: 8px;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 0.05em;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .generate-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+  .generate-btn:active { transform: translateY(0); }
+  .generate-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  /* SOAP */
+  .soap-label {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 800;
+    flex-shrink: 0;
+  }
+
+  .soap-s { background: rgba(79,142,247,0.15); color: #4f8ef7; }
+  .soap-o { background: rgba(61,214,140,0.15); color: #3dd68c; }
+  .soap-a { background: rgba(245,166,35,0.15); color: #f5a623; }
+  .soap-p { background: rgba(124,92,191,0.15); color: #9b7de8; }
+
+  .soap-title-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .soap-title-text { font-size: 12px; font-weight: 600; color: var(--text2); letter-spacing: 0.06em; }
+
+  .soap-content {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    min-height: 80px;
+    font-size: 15px;
+    line-height: 1.9;
+    color: var(--text);
+    white-space: pre-wrap;
+    font-weight: 500;
+  }
+
+  .soap-content.empty { color: var(--text3); font-size: 12px; }
+
+  .copy-btn {
+    margin-top: 8px;
+    width: 100%;
+    padding: 12px;
+    background: transparent;
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    color: var(--text2);
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+
+  .copy-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(79,142,247,0.05); }
+  .copy-btn.copied { border-color: var(--success); color: var(--success); background: rgba(61,214,140,0.05); }
+
+  /* 未確認リスト */
+  .pending-list { display: flex; flex-direction: column; gap: 8px; max-height: 280px; overflow-y: auto; }
+
+  .pending-item {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .pending-item:hover { border-color: var(--accent); background: rgba(79,142,247,0.05); }
+
+  .pending-item-left { display: flex; flex-direction: column; gap: 3px; }
+  .pending-patient { font-size: 16px; font-weight: 700; color: var(--text); font-family: var(--mono); }
+  .pending-time { font-size: 13px; color: var(--text2); font-weight: 500; }
+  .pending-dot { width: 8px; height: 8px; background: var(--warning); border-radius: 50%; flex-shrink: 0; }
+
+  .empty-list { color: var(--text3); font-size: 13px; text-align: center; padding: 24px 0; }
+
+  /* ローディング */
+  .loading-dots { display: inline-flex; gap: 4px; align-items: center; }
+  .loading-dots span { width: 6px; height: 6px; background: #fff; border-radius: 50%; animation: blink 1.2s infinite; }
+  .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+  .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes blink { 0%, 80%, 100% { opacity: 0.2; } 40% { opacity: 1; } }
+
+  /* トースト */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 18px;
+    font-size: 13px;
+    color: var(--text);
+    z-index: 999;
+    transform: translateY(80px);
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast.success { border-color: var(--success); }
+  .toast.error { border-color: var(--danger); }
+
+  /* セーブ状態 */
+  .save-status {
+    font-size: 11px;
+    color: var(--text3);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .save-status.saved { color: var(--success); }
+
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  @media (max-width: 640px) {
+    .container { grid-template-columns: 1fr; }
+    .card-full { grid-column: 1; }
+    .user-name { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ======== セットアップ画面 ======== -->
+<div id="setupScreen" style="display:none">
+  <div class="setup-card">
+    <div class="setup-title">🔧 初期設定</div>
+    <div class="setup-sub">
+      初回のみ設定が必要です。FirebaseプロジェクトのConfig情報とAnthropicのAPIキーを入力してください。
+    </div>
+
+    <div class="setup-section">
+      <div class="setup-section-title">🔥 Firebase Config</div>
+      <label class="setup-label">API Key</label>
+      <input type="text" class="setup-input" id="fb_apiKey" placeholder="AIzaSy..." />
+      <label class="setup-label">Auth Domain</label>
+      <input type="text" class="setup-input" id="fb_authDomain" placeholder="your-project.firebaseapp.com" />
+      <label class="setup-label">Project ID</label>
+      <input type="text" class="setup-input" id="fb_projectId" placeholder="your-project-id" />
+      <label class="setup-label">App ID</label>
+      <input type="text" class="setup-input" id="fb_appId" placeholder="1:xxx:web:xxx" />
+    </div>
+
+    <div class="setup-section">
+      <div class="setup-section-title">🤖 Anthropic API</div>
+      <label class="setup-label">API Key</label>
+      <input type="password" class="setup-input" id="setup_anthropicKey" placeholder="sk-ant-..." />
+    </div>
+
+    <button class="setup-btn" onclick="saveSetup()">設定を保存してログイン画面へ</button>
+
+    <div class="setup-note">
+      💡 設定情報はブラウザのlocalStorageに保存されます。この設定は1回だけ行えば次回から不要です。<br>
+      FirebaseのConfigはFirebaseコンソール → プロジェクト設定 → マイアプリ から確認できます。
+    </div>
+  </div>
+</div>
+
+<!-- ======== ログイン画面 ======== -->
+<div id="loginScreen" style="display:none">
+  <div class="login-card">
+    <div class="login-logo">💊</div>
+    <div class="login-title">薬歴AIアシスト</div>
+    <div class="login-sub">
+      Googleアカウントでログインして<br>服薬指導の記録を始めましょう
+    </div>
+    <button class="google-btn" onclick="signInWithGoogle()">
+      <svg class="google-icon" viewBox="0 0 24 24">
+        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+      </svg>
+      Googleでログイン
+    </button>
+    <div class="login-note">
+      会社のGoogleアカウントでログインしてください<br>
+      個人データはアカウントごとに分離して保存されます
+    </div>
+    <span class="setup-link" onclick="showSetup()">⚙ Firebase設定を変更する</span>
+  </div>
+</div>
+
+<!-- ======== メイン画面 ======== -->
+<div id="mainScreen">
+  <header>
+    <div class="logo">
+      <div class="logo-dot"></div>
+      薬歴AIアシスト
+    </div>
+    <div class="user-info">
+      <span class="save-status" id="saveStatus"></span>
+      <img id="userAvatar" class="user-avatar" style="display:none" />
+      <div id="userAvatarPlaceholder" class="user-avatar-placeholder" style="display:none"></div>
+      <span class="user-name" id="userName"></span>
+      <button class="logout-btn" onclick="signOut()">ログアウト</button>
+    </div>
+  </header>
+
+  <!-- APIキー行 -->
+  <div class="api-row">
+    <span class="api-label">Anthropic API Key</span>
+    <input type="password" class="api-input" id="apiKeyInput" placeholder="sk-ant-..." />
+    <button class="save-key-btn" onclick="saveApiKey()">保存</button>
+  </div>
+
+  <div class="container">
+
+    <!-- 録音カード -->
+    <div class="card card-full">
+      <div class="card-header">
+        <span class="card-title">服薬指導 録音</span>
+      </div>
+      <div class="card-body">
+        <div class="patient-row">
+          <span class="patient-label">患者番号</span>
+          <input type="text" class="patient-input" id="patientNo" placeholder="例：A-12345" />
+        </div>
+        <!-- 音声コマンドバー -->
+        <div id="voiceCmdBar" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:12px;">
+          <div style="font-size:12px;color:var(--text2);margin-bottom:6px;">🎙 音声コマンド</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px;">
+            <span style="background:var(--accent);color:#fff;padding:3px 10px;border-radius:4px;font-size:11px;">患者番号〇〇〇〇</span>
+            <span style="background:var(--accent);color:#fff;padding:3px 10px;border-radius:4px;font-size:11px;">投薬開始</span>
+            <span style="background:var(--accent);color:#fff;padding:3px 10px;border-radius:4px;font-size:11px;">投薬終了</span>
+            <span style="background:var(--accent);color:#fff;padding:3px 10px;border-radius:4px;font-size:11px;">薬歴生成</span>
+          </div>
+          <div id="cmdStatus" style="font-size:11px;color:var(--text3);">🎙 待機中（「投薬開始」で録音スタート）</div>
+        </div>
+        <div class="rec-area">
+          <button class="rec-btn" id="recBtn" onclick="toggleRecording()">🎤</button>
+          <div class="rec-info">
+            <div class="rec-status" id="recStatus">録音開始ボタンを押してください</div>
+            <div class="rec-timer" id="recTimer">00:00</div>
+          </div>
+        </div>
+        <div class="transcript-box" id="transcriptBox">
+          <span class="transcript-placeholder" id="transcriptPlaceholder">文字起こしがここに表示されます...</span>
+          <span id="finalText"></span>
+          <span class="interim-text" id="interimText"></span>
+        </div>
+        <button class="generate-btn" id="generateBtn" onclick="generateSOAP()" disabled>
+          <span id="generateBtnText">✨ SOAP薬歴を生成</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- S -->
+    <div class="card">
+      <div class="card-header">
+        <div class="soap-title-row" style="margin:0">
+          <span class="soap-label soap-s">S</span>
+          <span class="soap-title-text">SUBJECTIVE　主観的情報</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="soap-content empty" id="sContent">生成後に表示されます</div>
+        <button class="copy-btn" id="sCopyBtn" onclick="copySOAP('s')">📋 Sをコピー</button>
+      </div>
+    </div>
+
+    <!-- O -->
+    <div class="card">
+      <div class="card-header">
+        <div class="soap-title-row" style="margin:0">
+          <span class="soap-label soap-o">O</span>
+          <span class="soap-title-text">OBJECTIVE　客観的情報</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="soap-content empty" id="oContent">生成後に表示されます</div>
+        <button class="copy-btn" id="oCopyBtn" onclick="copySOAP('o')">📋 Oをコピー</button>
+      </div>
+    </div>
+
+    <!-- A -->
+    <div class="card">
+      <div class="card-header">
+        <div class="soap-title-row" style="margin:0">
+          <span class="soap-label soap-a">A</span>
+          <span class="soap-title-text">ASSESSMENT　評価</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="soap-content empty" id="aContent">生成後に表示されます</div>
+        <button class="copy-btn" id="aCopyBtn" onclick="copySOAP('a')">📋 Aをコピー</button>
+      </div>
+    </div>
+
+    <!-- P -->
+    <div class="card">
+      <div class="card-header">
+        <div class="soap-title-row" style="margin:0">
+          <span class="soap-label soap-p">P</span>
+          <span class="soap-title-text">PLAN　計画</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="soap-content empty" id="pContent">生成後に表示されます</div>
+        <button class="copy-btn" id="pCopyBtn" onclick="copySOAP('p')">📋 Pをコピー</button>
+      </div>
+    </div>
+
+    <!-- 未確認リスト -->
+    <div class="card card-full">
+      <div class="card-header">
+        <span class="card-title">未確認リスト</span>
+        <span style="font-size:11px;color:var(--text3)" id="pendingCount">0件</span>
+      </div>
+      <div class="card-body">
+        <div style="display:flex;gap:8px;margin-bottom:12px;">
+          <input
+            type="text"
+            id="pendingSearch"
+            placeholder="患者番号・日付で検索..."
+            oninput="filterPendingList()"
+            style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:16px;padding:10px 14px;outline:none;"
+          />
+          <button
+            onclick="startVoiceSearch()"
+            id="voiceSearchBtn"
+            style="padding:10px 16px;background:var(--accent);border:none;border-radius:8px;color:#fff;font-size:20px;cursor:pointer;flex-shrink:0;"
+            title="音声で患者番号を検索"
+          >🎙</button>
+        </div>
+        <div class="pending-list" id="pendingList">
+          <div class="empty-list">未確認の薬歴はありません</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- トースト -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ======== 設定管理 ========
+function getConfig() {
+  try { return JSON.parse(localStorage.getItem('yakureki_config') || '{}'); } catch { return {}; }
+}
+
+function saveSetup() {
+  const config = {
+    firebase: {
+      apiKey: document.getElementById('fb_apiKey').value.trim(),
+      authDomain: document.getElementById('fb_authDomain').value.trim(),
+      projectId: document.getElementById('fb_projectId').value.trim(),
+      appId: document.getElementById('fb_appId').value.trim(),
+    },
+    anthropicKey: document.getElementById('setup_anthropicKey').value.trim()
+  };
+
+  if (!config.firebase.apiKey || !config.firebase.authDomain || !config.firebase.projectId) {
+    showToast('Firebase Configを入力してください', 'error'); return;
+  }
+  if (!config.anthropicKey) {
+    showToast('Anthropic APIキーを入力してください', 'error'); return;
+  }
+
+  localStorage.setItem('yakureki_config', JSON.stringify(config));
+  showToast('設定を保存しました', 'success');
+  setTimeout(() => location.reload(), 1000);
+}
+
+function showSetup() {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('setupScreen').style.display = 'flex';
+}
+
+// ======== Firebase初期化 ========
+let db = null;
+let currentUser = null;
+let pendingItems = [];
+let soapData = { s: '', o: '', a: '', p: '' };
+let recognition = null;
+let isRecording = false;
+let timerInterval = null;
+let seconds = 0;
+let finalTranscript = '';
+
+function initApp() {
+  const config = getConfig();
+
+  // Firebase設定（yakureki-aiプロジェクト）
+  const firebaseConfig = {
+    apiKey: "AIzaSyBbkxHoeJiqLwzVpqoEU6vcbufDIk1KEBg",
+    authDomain: "yakurerki-ai.firebaseapp.com",
+    projectId: "yakurerki-ai",
+    storageBucket: "yakurerki-ai.firebasestorage.app",
+    messagingSenderId: "748495973914",
+    appId: "1:748495973914:web:5a19411c5b0cb51f252ba3"
+  };
+
+  // Firebase初期化
+  try {
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
+    db = firebase.firestore();
+
+    // 認証状態監視
+    firebase.auth().onAuthStateChanged(user => {
+      if (user) {
+        currentUser = user;
+        showMainScreen(user);
+      } else {
+        showLoginScreen();
+      }
+    });
+  } catch (e) {
+    showToast('Firebase初期化エラー: ' + e.message, 'error');
+    document.getElementById('setupScreen').style.display = 'flex';
+  }
+}
+
+// ======== 認証 ========
+async function signInWithGoogle() {
+  try {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    await firebase.auth().signInWithPopup(provider);
+  } catch (e) {
+    showToast('ログインエラー: ' + e.message, 'error');
+  }
+}
+
+async function signOut() {
+  await firebase.auth().signOut();
+  currentUser = null;
+}
+
+// ======== 画面切り替え ========
+function showLoginScreen() {
+  document.getElementById('setupScreen').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('mainScreen').style.display = 'none';
+}
+
+function showMainScreen(user) {
+  document.getElementById('setupScreen').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('mainScreen').style.display = 'block';
+
+  // ユーザー情報表示
+  document.getElementById('userName').textContent = user.displayName || user.email;
+
+  if (user.photoURL) {
+    const img = document.getElementById('userAvatar');
+    img.src = user.photoURL;
+    img.style.display = 'block';
+  } else {
+    const placeholder = document.getElementById('userAvatarPlaceholder');
+    placeholder.textContent = (user.displayName || user.email || 'U')[0].toUpperCase();
+    placeholder.style.display = 'flex';
+  }
+
+  // APIキー読み込み
+  const config = getConfig();
+  if (config.anthropicKey) {
+    document.getElementById('apiKeyInput').value = '●'.repeat(20);
+  }
+
+  // 未確認リスト読み込み
+  loadPendingFromFirestore();
+
+  // 音声コマンド待機モード開始
+  setTimeout(() => startStandby(), 1000);
+}
+
+// ======== APIキー ========
+function saveApiKey() {
+  const key = document.getElementById('apiKeyInput').value.trim();
+  if (!key || key.includes('●')) return showToast('APIキーを入力してください', 'error');
+  const config = getConfig();
+  config.anthropicKey = key;
+  localStorage.setItem('yakureki_config', JSON.stringify(config));
+  document.getElementById('apiKeyInput').value = '●'.repeat(20);
+  showToast('APIキーを保存しました ✓', 'success');
+}
+
+function getApiKey() {
+  const input = document.getElementById('apiKeyInput').value;
+  if (!input.includes('●')) return input;
+  return getConfig().anthropicKey || '';
+}
+
+// ======== 録音 ========
+function toggleRecording() {
+  if (!isRecording) startRecording();
+  else stopRecording();
+}
+
+// 待機モード（投薬開始コマンド検知）
+let standbyRecognition = null;
+
+function startStandby() {
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) return;
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  standbyRecognition = new SR();
+  standbyRecognition.lang = 'ja-JP';
+  standbyRecognition.continuous = true;
+  standbyRecognition.interimResults = false;
+  standbyRecognition.onresult = (e) => {
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      const cmd = e.results[i][0].transcript.trim();
+      if (cmd.includes('投薬開始') || cmd.includes('開始')) {
+        document.getElementById('cmdStatus').textContent = '✓ 投薬開始';
+        standbyRecognition.stop();
+        startRecording();
+        return;
+      }
+      if (cmd.match(/患者番号[\s　]*([0-9A-Za-zａ-ｚＡ-Ｚ０-９\-]+)/)) {
+        const match = cmd.match(/患者番号[\s　]*([0-9A-Za-zａ-ｚＡ-Ｚ０-９\-]+)/);
+        if (match) {
+          document.getElementById('patientNo').value = match[1];
+          document.getElementById('cmdStatus').textContent = `✓ 患者番号: ${match[1]}`;
+          showToast(`患者番号 ${match[1]} を入力しました`, 'success');
+        }
+      }
+    }
+  };
+  standbyRecognition.onend = () => { if (!isRecording) startStandby(); };
+  standbyRecognition.start();
+  document.getElementById('cmdStatus').textContent = '🎙 待機中（「投薬開始」で録音スタート）';
+}
+
+function startRecording() {
+  if (standbyRecognition) { standbyRecognition.onend = null; standbyRecognition.stop(); }
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    showToast('Chrome推奨：このブラウザは音声認識に対応していません', 'error'); return;
+  }
+
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  recognition = new SR();
+  recognition.lang = 'ja-JP';
+  recognition.continuous = true;
+  recognition.interimResults = true;
+
+  recognition.onresult = (e) => {
+    let interim = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      const transcript = e.results[i][0].transcript;
+      if (e.results[i].isFinal) {
+        // 音声コマンド判定
+        const cmd = transcript.trim();
+        if (cmd.includes('投薬終了') || cmd.includes('終了')) {
+          document.getElementById('cmdStatus').textContent = '✓ 投薬終了';
+          stopRecording();
+          setTimeout(() => generateSOAP(), 500);
+          return;
+        } else if (cmd.includes('薬歴生成')) {
+          document.getElementById('cmdStatus').textContent = '✓ 薬歴生成';
+          generateSOAP();
+          return;
+        } else if (cmd.match(/患者番号[\s　]*([0-9A-Za-zａ-ｚＡ-Ｚ０-９\-]+)/)) {
+          const match = cmd.match(/患者番号[\s　]*([0-9A-Za-zａ-ｚＡ-Ｚ０-９\-]+)/);
+          if (match) {
+            document.getElementById('patientNo').value = match[1];
+            document.getElementById('cmdStatus').textContent = `✓ 患者番号: ${match[1]}`;
+            showToast(`患者番号 ${match[1]} を入力しました`, 'success');
+          }
+          return;
+        } else {
+          finalTranscript += transcript;
+        }
+      } else {
+        interim += transcript;
+      }
+    }
+    document.getElementById('finalText').textContent = finalTranscript;
+    document.getElementById('interimText').textContent = interim;
+    document.getElementById('transcriptPlaceholder').style.display = 'none';
+    document.getElementById('generateBtn').disabled = false;
+  };
+
+  recognition.onerror = (e) => { if (e.error !== 'no-speech') showToast('音声認識エラー: ' + e.error, 'error'); };
+  recognition.onend = () => { if (isRecording) recognition.start(); };
+  recognition.start();
+  isRecording = true;
+
+  document.getElementById('recBtn').classList.add('recording');
+  document.getElementById('recBtn').textContent = '⏹';
+  document.getElementById('recStatus').textContent = '録音中...';
+  document.getElementById('recStatus').classList.add('active');
+
+  seconds = 0;
+  timerInterval = setInterval(() => {
+    seconds++;
+    const m = String(Math.floor(seconds / 60)).padStart(2, '0');
+    const s = String(seconds % 60).padStart(2, '0');
+    document.getElementById('recTimer').textContent = `${m}:${s}`;
+    document.getElementById('recTimer').classList.add('active');
+  }, 1000);
+}
+
+function stopRecording() {
+  if (recognition) { recognition.onend = null; recognition.stop(); }
+  isRecording = false;
+  clearInterval(timerInterval);
+  document.getElementById('recBtn').classList.remove('recording');
+  document.getElementById('recBtn').textContent = '🎤';
+  document.getElementById('recStatus').textContent = '録音完了 — 薬歴を生成してください';
+  document.getElementById('recStatus').classList.remove('active');
+  document.getElementById('recTimer').classList.remove('active');
+}
+
+// ======== SOAP生成 ========
+async function generateSOAP() {
+  const apiKey = getApiKey();
+  if (!apiKey) { showToast('APIキーを入力してください', 'error'); return; }
+
+  const transcript = finalTranscript;
+  if (!transcript.trim()) { showToast('文字起こしがありません', 'error'); return; }
+
+  const btn = document.getElementById('generateBtn');
+  btn.disabled = true;
+  document.getElementById('generateBtnText').innerHTML = `<span class="loading-dots"><span></span><span></span><span></span></span> 生成中...`;
+
+  const prompt = `あなたは薬剤師の服薬指導記録をSOAP形式で作成する専門アシスタントです。
+
+以下の服薬指導の内容からSOAP薬歴を作成してください。
+
+【最初にやること：個人情報の自動マスキング】
+服薬指導内容に含まれる以下の情報を必ずマスキングしてから薬歴を作成すること。
+- 患者の氏名・名前（「田中さん」「鈴木様」「〇〇さん」等）→「患者さん」に置き換え
+- 地名・住所・電話番号等の個人特定情報 → 削除または「（省略）」に置き換え
+- 家族の固有名（「太郎が」「花子ちゃんが」等）→「家族が」に置き換え
+マスキングは薬歴の全項目に適用すること。
+
+【ルール】
+- S（主観的情報）：患者が口で話した訴え、症状、生活状況、患者背景を記載。「朝の薬」「いつもの薬」等の日常表現はそのまま使用してよい
+- O（客観的情報）：残薬数、バイタル、薬剤師が観察した患者の様子・表情・態度、処方内容の変化を記載
+- A（評価）：薬剤師としての専門的判断を3〜5項目で記載。必ずアドヒアランス評価・副作用評価・効果評価を含む。情報不足の項目は「○○について今回確認できず、次回確認予定」と記載
+- P（計画）：次回確認事項、医師へのフィードバック要否、指導内容、フォロー時期を記載
+
+【重要】
+- 根拠のない情報は絶対に作らない
+- マスキング後の情報のみで薬歴を作成する
+- 必ずJSON形式のみで返答する
+
+{"s":"〇〇","o":"〇〇","a":"1. 〇〇\n2. 〇〇\n3. 〇〇","p":"〇〇"}
+
+服薬指導内容：
+${transcript}`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    if (!res.ok) { const err = await res.json(); throw new Error(err.error?.message || 'APIエラー'); }
+
+    const data = await res.json();
+    const text = data.content[0].text.trim().replace(/```json|```/g, '').trim();
+    const soap = JSON.parse(text);
+
+    soapData = soap;
+    renderSOAP(soap);
+    await saveToPending();
+    showToast('薬歴を生成・保存しました ✓', 'success');
+
+  } catch (e) {
+    showToast('エラー: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    document.getElementById('generateBtnText').textContent = '✨ SOAP薬歴を生成';
+  }
+}
+
+function renderSOAP(soap) {
+  ['s','o','a','p'].forEach(key => {
+    const el = document.getElementById(key + 'Content');
+    el.textContent = soap[key] || '（情報なし）';
+    el.classList.remove('empty');
+  });
+}
+
+// ======== コピー ========
+async function copySOAP(key) {
+  const text = soapData[key];
+  if (!text) { showToast('先に薬歴を生成してください', 'error'); return; }
+  await navigator.clipboard.writeText(text);
+  const btn = document.getElementById(key + 'CopyBtn');
+  btn.classList.add('copied');
+  btn.textContent = '✓ コピーしました';
+  setTimeout(() => {
+    btn.classList.remove('copied');
+    btn.textContent = `📋 ${key.toUpperCase()}をコピー`;
+  }, 2000);
+  showToast(`${key.toUpperCase()} をコピーしました`, 'success');
+}
+
+// ======== Firestore保存 ========
+async function saveToPending() {
+  if (!currentUser || !db) return;
+
+  const patientNo = document.getElementById('patientNo').value.trim() || '患者番号未入力';
+  const now = new Date();
+
+  const entry = {
+    patientNo,
+    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+    date: now.toLocaleDateString('ja-JP'),
+    time: `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`,
+    transcript: finalTranscript,
+    soap: { ...soapData },
+    status: 'pending',
+    uid: currentUser.uid,
+    userName: currentUser.displayName || currentUser.email
+  };
+
+  setSaveStatus('保存中...');
+  try {
+    await db.collection('users').doc(currentUser.uid).collection('yakureki').add(entry);
+    setSaveStatus('保存済み ✓', true);
+    await loadPendingFromFirestore();
+  } catch (e) {
+    setSaveStatus('');
+    showToast('保存エラー: ' + e.message, 'error');
+  }
+}
+
+async function loadPendingFromFirestore() {
+  if (!currentUser || !db) return;
+  try {
+    const snap = await db.collection('users').doc(currentUser.uid)
+      .collection('yakureki')
+      .where('status', '==', 'pending')
+      .orderBy('timestamp', 'desc')
+      .limit(30)
+      .get();
+
+    pendingItems = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    renderPendingList();
+  } catch (e) {
+    // orderByにはFirestoreのインデックスが必要な場合あり。フォールバック
+    try {
+      const snap = await db.collection('users').doc(currentUser.uid)
+        .collection('yakureki')
+        .where('status', '==', 'pending')
+        .limit(30)
+        .get();
+      pendingItems = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      renderPendingList();
+    } catch(e2) {
+      console.error(e2);
+    }
+  }
+}
+
+function renderPendingList(filtered) {
+  const list = document.getElementById('pendingList');
+  const items = filtered || pendingItems;
+  document.getElementById('pendingCount').textContent = pendingItems.length + '件';
+
+  if (items.length === 0) {
+    list.innerHTML = '<div class="empty-list">該当する薬歴はありません</div>';
+    return;
+  }
+
+  list.innerHTML = items.map(item => `
+    <div class="pending-item" onclick="loadPending('${item.id}')">
+      <div class="pending-item-left">
+        <span class="pending-patient">📋 ${item.patientNo}</span>
+        <span class="pending-time">${item.date || ''} ${item.time || ''}　${item.userName || ''}</span>
+      </div>
+      <div class="pending-dot"></div>
+    </div>
+  `).join('');
+}
+
+function filterPendingList() {
+  const keyword = document.getElementById('pendingSearch').value.trim().toLowerCase();
+  if (!keyword) {
+    renderPendingList();
+    return;
+  }
+  const filtered = pendingItems.filter(item =>
+    (item.patientNo || '').toLowerCase().includes(keyword) ||
+    (item.date || '').includes(keyword) ||
+    (item.time || '').includes(keyword) ||
+    (item.userName || '').toLowerCase().includes(keyword)
+  );
+  renderPendingList(filtered);
+}
+
+function startVoiceSearch() {
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    showToast('音声認識に対応していません', 'error'); return;
+  }
+  const btn = document.getElementById('voiceSearchBtn');
+  btn.textContent = '🔴';
+  btn.style.background = 'var(--rec)';
+
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const vs = new SR();
+  vs.lang = 'ja-JP';
+  vs.continuous = false;
+  vs.interimResults = false;
+  vs.onresult = (e) => {
+    const text = e.results[0][0].transcript.trim();
+    const match = text.match(/([0-9A-Za-z\-]+)/);
+    const keyword = match ? match[1] : text;
+    document.getElementById('pendingSearch').value = keyword;
+    filterPendingList();
+    showToast(`「${keyword}」で検索しました`, 'success');
+  };
+  vs.onend = () => {
+    btn.textContent = '🎙';
+    btn.style.background = 'var(--accent)';
+  };
+  vs.onerror = () => {
+    btn.textContent = '🎙';
+    btn.style.background = 'var(--accent)';
+    showToast('音声認識に失敗しました', 'error');
+  };
+  vs.start();
+}
+
+function loadPending(id) {
+  const item = pendingItems.find(p => p.id === id);
+  if (!item) return;
+  document.getElementById('patientNo').value = item.patientNo;
+  finalTranscript = item.transcript || '';
+  document.getElementById('finalText').textContent = item.transcript || '';
+  document.getElementById('transcriptPlaceholder').style.display = 'none';
+  soapData = item.soap || { s:'', o:'', a:'', p:'' };
+  renderSOAP(soapData);
+  document.getElementById('generateBtn').disabled = false;
+  showToast('薬歴を読み込みました', 'success');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ======== UI ========
+function setSaveStatus(text, success = false) {
+  const el = document.getElementById('saveStatus');
+  el.textContent = text;
+  el.className = 'save-status' + (success ? ' saved' : '');
+}
+
+function showToast(msg, type = 'success') {
+  const t = document.getElementById('toast');
+  t.textContent = type === 'success' ? '✓ ' + msg : '⚠ ' + msg;
+  t.className = 'toast ' + type + ' show';
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// ======== 起動 ========
+window.addEventListener('load', initApp);
+</script>
+</body>
+</html>
